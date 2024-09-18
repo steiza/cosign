@@ -223,7 +223,7 @@ func (c *VerifyBlobCmd) Exec(ctx context.Context, blobRef string) error {
 	}
 
 	if c.TrustedRootPath != "" {
-		b, err := assembleNewBundle(ctx, sigBytes, rfc3161Timestamp.SignedRFC3161Timestamp, nil, blobRef, cert, c.IgnoreTlog, co.SigVerifier, co.PKOpts, co.RekorClient)
+		b, err := AssembleNewBundle(ctx, sigBytes, rfc3161Timestamp.SignedRFC3161Timestamp, nil, blobRef, cert, c.IgnoreTlog, co.SigVerifier, co.PKOpts, co.RekorClient)
 		if err != nil {
 			return err
 		}

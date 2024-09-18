@@ -174,7 +174,7 @@ func verifyNewBundle(ctx context.Context, bundle *sgbundle.Bundle, trustedRootPa
 	return sev.Verify(bundle, verify.NewPolicy(verify.WithArtifact(buf), identityPolicies...))
 }
 
-func assembleNewBundle(ctx context.Context, sigBytes, signedTimestamp []byte, envelope *dsse.Envelope, artifactRef string, cert *x509.Certificate, ignoreTlog bool, sigVerifier signature.Verifier, pkOpts []signature.PublicKeyOption, rekorClient *client.Rekor) (*sgbundle.Bundle, error) {
+func AssembleNewBundle(ctx context.Context, sigBytes, signedTimestamp []byte, envelope *dsse.Envelope, artifactRef string, cert *x509.Certificate, ignoreTlog bool, sigVerifier signature.Verifier, pkOpts []signature.PublicKeyOption, rekorClient *client.Rekor) (*sgbundle.Bundle, error) {
 	payload, err := payloadBytes(artifactRef)
 	if err != nil {
 		return nil, err

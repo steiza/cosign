@@ -241,7 +241,7 @@ func (c *VerifyBlobAttestationCommand) Exec(ctx context.Context, artifactPath st
 			return nil
 		}
 
-		b, err := assembleNewBundle(ctx, encodedSig, rfc3161Timestamp.SignedRFC3161Timestamp, &envelope, artifactPath, cert, c.IgnoreTlog, co.SigVerifier, co.PKOpts, co.RekorClient)
+		b, err := AssembleNewBundle(ctx, encodedSig, rfc3161Timestamp.SignedRFC3161Timestamp, &envelope, artifactPath, cert, c.IgnoreTlog, co.SigVerifier, co.PKOpts, co.RekorClient)
 		if err != nil {
 			return err
 		}
