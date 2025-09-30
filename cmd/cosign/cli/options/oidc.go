@@ -56,9 +56,6 @@ var _ Interface = (*OIDCOptions)(nil)
 
 // AddFlags implements Interface
 func (o *OIDCOptions) AddFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&o.Issuer, "oidc-issuer", DefaultOIDCIssuerURL,
-		"OIDC provider to be used to issue ID token")
-
 	cmd.Flags().StringVar(&o.ClientID, "oidc-client-id", "sigstore",
 		"OIDC client ID for application")
 

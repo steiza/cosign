@@ -21,6 +21,7 @@ import (
 
 	"github.com/sigstore/cosign/v3/cmd/cosign/cli/options"
 	"github.com/sigstore/cosign/v3/pkg/cosign"
+	"github.com/sigstore/sigstore-go/pkg/root"
 )
 
 func TestSignBlobCmd(t *testing.T) {
@@ -34,19 +35,28 @@ func TestSignBlobCmd(t *testing.T) {
 	blobPath := writeFile(t, td, string(blob), "foo.txt")
 
 	rootOpts := &options.RootOptions{}
-	keyOpts := options.KeyOpts{KeyRef: keyRef, BundlePath: bundlePath}
-
-	// Test happy path
-	_, err := SignBlobCmd(rootOpts, keyOpts, blobPath, true, "", "", false)
+	signingConfig, err := root.NewSigningConfig(
+		root.SigningConfigMediaType02,
+		[]root.Service{},
+		[]root.Service{},
+		[]root.Service{},
+		root.ServiceConfiguration{},
+		[]root.Service{},
+		root.ServiceConfiguration{},
+	)
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
 
-	// Test file outputs
-	keyOpts.NewBundleFormat = true
-	sigPath := filepath.Join(td, "output.sig")
-	certPath := filepath.Join(td, "output.pem")
-	_, err = SignBlobCmd(rootOpts, keyOpts, blobPath, false, sigPath, certPath, false)
+	keyOpts := options.KeyOpts{
+		KeyRef: keyRef,
+		BundlePath: bundlePath,
+		SigningConfig: signingConfig,
+		TrustedMaterial: &root.BaseTrustedMaterial{},
+	}
+
+	// Test happy path
+	_, err = SignBlobCmd(rootOpts, keyOpts, blobPath, false)
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}

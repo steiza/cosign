@@ -18,22 +18,18 @@ package cli
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/sigstore/cosign/v3/cmd/cosign/cli/generate"
 	"github.com/sigstore/cosign/v3/cmd/cosign/cli/options"
 	"github.com/sigstore/cosign/v3/cmd/cosign/cli/sign"
 	"github.com/sigstore/cosign/v3/internal/ui"
 	"github.com/sigstore/cosign/v3/pkg/cosign"
-	"github.com/sigstore/cosign/v3/pkg/cosign/env"
 	"github.com/sigstore/sigstore-go/pkg/root"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func SignBlob() *cobra.Command {
 	o := &options.SignBlobOptions{}
-	viper.RegisterAlias("output", "output-signature")
 
 	cmd := &cobra.Command{
 		Use:   "sign-blob",
@@ -41,7 +37,7 @@ func SignBlob() *cobra.Command {
 		Example: `  cosign sign-blob --key <key path>|<kms uri> <blob>
 
   # sign a blob with Google sign-in (experimental)
-  cosign sign-blob <FILE> --output-signature <FILE> --output-certificate <FILE>
+  cosign sign-blob <FILE>
 
   # sign a blob with a local key pair file
   cosign sign-blob --key cosign.key <FILE>
@@ -84,20 +80,13 @@ func SignBlob() *cobra.Command {
 				FulcioAuthFlow:                 o.Fulcio.AuthFlow,
 				InsecureSkipFulcioVerify:       o.Fulcio.InsecureSkipFulcioVerify,
 				RekorURL:                       o.Rekor.URL,
-				OIDCIssuer:                     o.OIDC.Issuer,
 				OIDCClientID:                   o.OIDC.ClientID,
 				OIDCClientSecret:               oidcClientSecret,
 				OIDCRedirectURL:                o.OIDC.RedirectURL,
 				OIDCDisableProviders:           o.OIDC.DisableAmbientProviders,
 				BundlePath:                     o.BundlePath,
-				NewBundleFormat:                o.NewBundleFormat,
 				SkipConfirmation:               o.SkipConfirmation,
-				TSAClientCACert:                o.TSAClientCACert,
-				TSAClientCert:                  o.TSAClientCert,
-				TSAClientKey:                   o.TSAClientKey,
-				TSAServerName:                  o.TSAServerName,
 				TSAServerURL:                   o.TSAServerURL,
-				RFC3161TimestampPath:           o.RFC3161TimestampPath,
 				IssueCertificateForExistingKey: o.IssueCertificate,
 			}
 			// If a signing config is used, then service URLs cannot be specified
@@ -115,8 +104,7 @@ func SignBlob() *cobra.Command {
 			// Fetch a trusted root when:
 			// * requesting a certificate and no CT log key is provided to verify an SCT
 			// * using a signing config and signing using sigstore-go
-			if ((o.Key == "" || o.IssueCertificate) && env.Getenv(env.VariableSigstoreCTLogPublicKeyFile) == "") ||
-				(o.UseSigningConfig || o.SigningConfigPath != "") {
+			if o.Key == "" || o.IssueCertificate || o.UseSigningConfig || o.SigningConfigPath != "" {
 				if o.TrustedRootPath != "" {
 					ko.TrustedMaterial, err = root.NewTrustedRootFromPath(o.TrustedRootPath)
 					if err != nil {
@@ -142,13 +130,7 @@ func SignBlob() *cobra.Command {
 			}
 
 			for _, blob := range args {
-				// TODO: remove when the output flag has been deprecated
-				if o.Output != "" {
-					fmt.Fprintln(os.Stderr, "WARNING: the '--output' flag is deprecated and will be removed in the future. Use '--output-signature'")
-					o.OutputSignature = o.Output
-				}
-
-				if _, err := sign.SignBlobCmd(ro, ko, blob, o.Base64Output, o.OutputSignature, o.OutputCertificate, o.TlogUpload); err != nil {
+				if _, err := sign.SignBlobCmd(ro, ko, blob, o.TlogUpload); err != nil {
 					return fmt.Errorf("signing %s: %w", blob, err)
 				}
 			}
