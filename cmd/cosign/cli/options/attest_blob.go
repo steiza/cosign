@@ -34,16 +34,11 @@ type AttestBlobOptions struct {
 	TSAClientKey         string
 	TSAServerName        string
 	TSAServerURL         string
-	RFC3161TimestampPath string
 
 	Hash      string
 	Predicate PredicateLocalOptions
 
-	OutputSignature   string
-	OutputAttestation string
-	OutputCertificate string
 	BundlePath        string
-	NewBundleFormat   bool
 
 	RekorEntryType string
 
@@ -82,24 +77,10 @@ func (o *AttestBlobOptions) AddFlags(cmd *cobra.Command) {
 			"signing certificate and end with the root certificate. Included in the OCI Signature")
 	_ = cmd.MarkFlagFilename("certificate-chain", certificateExts...)
 
-	cmd.Flags().StringVar(&o.OutputSignature, "output-signature", "",
-		"write the signature to FILE")
-	_ = cmd.MarkFlagFilename("output-signature", signatureExts...)
-
-	cmd.Flags().StringVar(&o.OutputAttestation, "output-attestation", "",
-		"write the attestation to FILE")
-	// _ = cmd.MarkFlagFilename("output-attestation") // no typical extensions
-
-	cmd.Flags().StringVar(&o.OutputCertificate, "output-certificate", "",
-		"write the certificate to FILE")
-	_ = cmd.MarkFlagFilename("key", certificateExts...)
-
 	cmd.Flags().StringVar(&o.BundlePath, "bundle", "",
 		"write everything required to verify the blob to a FILE")
 	_ = cmd.MarkFlagFilename("bundle", bundleExts...)
-
-	cmd.Flags().BoolVar(&o.NewBundleFormat, "new-bundle-format", true,
-		"output bundle in new format that contains all verification material")
+	_ = cmd.MarkFlagRequired("bundle")
 
 	// TODO: have this default to true as a breaking change
 	cmd.Flags().BoolVar(&o.UseSigningConfig, "use-signing-config", false,
@@ -142,10 +123,6 @@ func (o *AttestBlobOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&o.TSAServerURL, "timestamp-server-url", "",
 		"url to the Timestamp RFC3161 server, default none. Must be the path to the API to request timestamp responses, e.g. https://freetsa.org/tsr")
 	_ = cmd.RegisterFlagCompletionFunc("timestamp-server-url", cobra.NoFileCompletions)
-
-	cmd.Flags().StringVar(&o.RFC3161TimestampPath, "rfc3161-timestamp-bundle", "",
-		"path to an RFC 3161 timestamp bundle FILE")
-	// _ = cmd.MarkFlagFilename("rfc3161-timestamp-bundle") // no typical extensions
 
 	cmd.Flags().BoolVar(&o.IssueCertificate, "issue-certificate", false,
 		"issue a code signing certificate from Fulcio, even if a key is provided")

@@ -18,10 +18,8 @@ import (
 	"bytes"
 	"context"
 	"crypto"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -45,7 +43,6 @@ import (
 	"github.com/sigstore/cosign/v3/pkg/types"
 	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/sigstore/sigstore-go/pkg/sign"
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 	sigstoredsse "github.com/sigstore/sigstore/pkg/signature/dsse"
 	signatureoptions "github.com/sigstore/sigstore/pkg/signature/options"
@@ -65,10 +62,6 @@ type AttestBlobCommand struct {
 
 	TlogUpload bool
 	Timeout    time.Duration
-
-	OutputSignature   string
-	OutputAttestation string
-	OutputCertificate string
 
 	RekorEntryType string
 }
@@ -92,10 +85,6 @@ func (c *AttestBlobCommand) Exec(ctx context.Context, artifactPath string) error
 		var cancelFn context.CancelFunc
 		ctx, cancelFn = context.WithTimeout(ctx, c.Timeout)
 		defer cancelFn()
-	}
-
-	if c.TSAServerURL != "" && c.RFC3161TimestampPath == "" && !c.NewBundleFormat {
-		return errors.New("expected either new bundle or an rfc3161-timestamp path when using a TSA server")
 	}
 
 	base := path.Base(artifactPath)
@@ -251,19 +240,9 @@ func (c *AttestBlobCommand) Exec(ctx context.Context, artifactPath string) error
 				c.KeyOpts.TSAServerName,
 			)
 		}
-		// We need to decide what signature to send to the timestamp authority.
-		//
-		// Historically, cosign sent `sig`, which is the entire JSON DSSE
-		// Envelope. However, when sigstore clients are verifying a bundle they
-		// will use the DSSE Sig field, so we choose what signature to send to
-		// the timestamp authority based on our output format.
-		if c.NewBundleFormat {
-			tsaPayload, err = cosign.GetDSSESigBytes(sig)
-			if err != nil {
-				return err
-			}
-		} else {
-			tsaPayload = sig
+		tsaPayload, err = cosign.GetDSSESigBytes(sig)
+		if err != nil {
+			return err
 		}
 		timestampBytes, err = tsa.GetTimestampedSignature(tsaPayload, tc)
 		if err != nil {
@@ -274,17 +253,6 @@ func (c *AttestBlobCommand) Exec(ctx context.Context, artifactPath string) error
 
 		if rfc3161Timestamp == nil {
 			return fmt.Errorf("rfc3161 timestamp is nil")
-		}
-
-		if c.RFC3161TimestampPath != "" {
-			ts, err := json.Marshal(rfc3161Timestamp)
-			if err != nil {
-				return err
-			}
-			if err := os.WriteFile(c.RFC3161TimestampPath, ts, 0600); err != nil {
-				return fmt.Errorf("create RFC3161 timestamp file: %w", err)
-			}
-			fmt.Fprintln(os.Stderr, "RFC3161 timestamp bundle written to file ", c.RFC3161TimestampPath)
 		}
 	}
 
@@ -317,24 +285,14 @@ func (c *AttestBlobCommand) Exec(ctx context.Context, artifactPath string) error
 
 	if c.BundlePath != "" {
 		var contents []byte
-		if c.NewBundleFormat {
-			pubKey, err := sv.PublicKey()
-			if err != nil {
-				return err
-			}
+		pubKey, err := sv.PublicKey()
+		if err != nil {
+			return err
+		}
 
-			contents, err = cbundle.MakeNewBundle(pubKey, rekorEntry, payload, sig, signer, timestampBytes)
-			if err != nil {
-				return err
-			}
-		} else {
-			signedPayload.Base64Signature = base64.StdEncoding.EncodeToString(sig)
-			signedPayload.Cert = base64.StdEncoding.EncodeToString(signer)
-
-			contents, err = json.Marshal(signedPayload)
-			if err != nil {
-				return err
-			}
+		contents, err = cbundle.MakeNewBundle(pubKey, rekorEntry, payload, sig, signer, timestampBytes)
+		if err != nil {
+			return err
 		}
 
 		if err := os.WriteFile(c.BundlePath, contents, 0600); err != nil {
@@ -343,44 +301,7 @@ func (c *AttestBlobCommand) Exec(ctx context.Context, artifactPath string) error
 		fmt.Fprintln(os.Stderr, "Bundle wrote in the file ", c.BundlePath)
 	}
 
-	if c.OutputSignature != "" {
-		if err := os.WriteFile(c.OutputSignature, sig, 0600); err != nil {
-			return fmt.Errorf("create signature file: %w", err)
-		}
-		fmt.Fprintf(os.Stderr, "Signature written in %s\n", c.OutputSignature)
-	} else {
-		fmt.Fprintln(os.Stdout, string(sig))
-	}
-
-	if c.OutputAttestation != "" {
-		if err := os.WriteFile(c.OutputAttestation, payload, 0600); err != nil {
-			return fmt.Errorf("create signature file: %w", err)
-		}
-		fmt.Fprintf(os.Stderr, "Attestation written in %s\n", c.OutputAttestation)
-	}
-
-	if c.OutputCertificate != "" {
-		signer, err := sv.Bytes(ctx)
-		if err != nil {
-			return fmt.Errorf("error getting signer: %w", err)
-		}
-		cert, err := cryptoutils.UnmarshalCertificatesFromPEM(signer)
-		// signer is a certificate
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Could not output signer certificate. Was a certificate used? ", err)
-			return nil
-
-		}
-		if len(cert) != 1 {
-			fmt.Fprintln(os.Stderr, "Could not output signer certificate. Expected a single certificate")
-			return nil
-		}
-		bts := signer
-		if err := os.WriteFile(c.OutputCertificate, bts, 0600); err != nil {
-			return fmt.Errorf("create certificate file: %w", err)
-		}
-		fmt.Fprintln(os.Stderr, "Certificate written to file ", c.OutputCertificate)
-	}
+	fmt.Fprintln(os.Stdout, string(sig))
 
 	return nil
 }

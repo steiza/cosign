@@ -37,6 +37,7 @@ import (
 	"github.com/sigstore/cosign/v3/cmd/cosign/cli/options"
 	"github.com/sigstore/cosign/v3/internal/test"
 	"github.com/sigstore/cosign/v3/pkg/cosign"
+	"github.com/sigstore/sigstore-go/pkg/bundle"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/dsse"
 	"github.com/stretchr/testify/assert"
@@ -170,9 +171,6 @@ func TestAttestBlobCmdLocalKeyAndCert(t *testing.T) {
 			} {
 				t.Run(tc.name, func(t *testing.T) {
 					keyOpts := options.KeyOpts{KeyRef: tc.keyref}
-					if tc.newBundle {
-						keyOpts.NewBundleFormat = true
-					}
 					at := AttestBlobCommand{
 						KeyOpts:        keyOpts,
 						CertPath:       tc.certref,
@@ -221,23 +219,26 @@ func TestAttestBlob(t *testing.T) {
 
 	for predicateType, predicatePath := range predicates {
 		t.Run(predicateType, func(t *testing.T) {
-			dssePath := filepath.Join(td, "dsse.intoto.jsonl")
+			bundlePath := filepath.Join(td, "bundle.sigstore.json")
 			at := AttestBlobCommand{
-				KeyOpts:         options.KeyOpts{KeyRef: keyRef},
-				PredicatePath:   predicatePath,
-				PredicateType:   predicateType,
-				OutputSignature: dssePath,
-				RekorEntryType:  "dsse",
+				KeyOpts:        options.KeyOpts{KeyRef: keyRef, BundlePath: bundlePath},
+				PredicatePath:  predicatePath,
+				PredicateType:  predicateType,
+				RekorEntryType: "dsse",
 			}
 			err := at.Exec(ctx, blobPath)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			// Load the attestation.
-			dsseBytes, _ := os.ReadFile(dssePath)
-			env := &ssldsse.Envelope{}
-			if err := json.Unmarshal(dsseBytes, env); err != nil {
+			// Load the bundle
+			b, err := bundle.LoadJSONFromPath(bundlePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			env, err := b.Envelope()
+			if err != nil {
 				t.Fatal(err)
 			}
 
@@ -270,7 +271,7 @@ func TestAttestBlob(t *testing.T) {
 			if err != nil {
 				t.Fatalf("new envelope verifier: %v", err)
 			}
-			if _, err := dssev.Verify(ctx, env); err != nil {
+			if _, err := dssev.Verify(ctx, env.Envelope); err != nil {
 				t.Fatalf("dsse verify: %v", err)
 			}
 		})
@@ -293,13 +294,11 @@ func TestBadRekorEntryType(t *testing.T) {
 
 	for predicateType, predicatePath := range predicates {
 		t.Run(predicateType, func(t *testing.T) {
-			dssePath := filepath.Join(td, "dsse.intoto.jsonl")
 			at := AttestBlobCommand{
-				KeyOpts:         options.KeyOpts{KeyRef: keyRef},
-				PredicatePath:   predicatePath,
-				PredicateType:   predicateType,
-				OutputSignature: dssePath,
-				RekorEntryType:  "badvalue",
+				KeyOpts:        options.KeyOpts{KeyRef: keyRef},
+				PredicatePath:  predicatePath,
+				PredicateType:  predicateType,
+				RekorEntryType: "badvalue",
 			}
 			err := at.Exec(ctx, blobPath)
 			if err == nil || err.Error() != "unknown value for rekor-entry-type" {
