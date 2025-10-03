@@ -9,34 +9,33 @@ cosign sign-blob [flags]
 ### Examples
 
 ```
-  cosign sign-blob --key <key path>|<kms uri> <blob>
+  cosign sign-blob --key <key path>|<kms uri> --bundle <output bundle> <blob>
 
   # sign a blob with Google sign-in (experimental)
-  cosign sign-blob <FILE> --output-signature <FILE> --output-certificate <FILE>
+  cosign sign-blob --bundle <FILE> <FILE>
 
   # sign a blob with a local key pair file
-  cosign sign-blob --key cosign.key <FILE>
+  cosign sign-blob --key cosign.key --bundle <FILE> <FILE>
 
   # sign a blob with a key stored in an environment variable
-  cosign sign-blob --key env://[ENV_VAR] <FILE>
+  cosign sign-blob --key env://[ENV_VAR] --bundle <FILE> <FILE>
 
   # sign a blob with a key pair stored in Azure Key Vault
-  cosign sign-blob --key azurekms://[VAULT_NAME][VAULT_URI]/[KEY] <FILE>
+  cosign sign-blob --key azurekms://[VAULT_NAME][VAULT_URI]/[KEY] --bundle <FILE> <FILE>
 
   # sign a blob with a key pair stored in AWS KMS
-  cosign sign-blob --key awskms://[ENDPOINT]/[ID/ALIAS/ARN] <FILE>
+  cosign sign-blob --key awskms://[ENDPOINT]/[ID/ALIAS/ARN] --bundle <FILE> <FILE>
 
   # sign a blob with a key pair stored in Google Cloud KMS
-  cosign sign-blob --key gcpkms://projects/[PROJECT]/locations/global/keyRings/[KEYRING]/cryptoKeys/[KEY] <FILE>
+  cosign sign-blob --key gcpkms://projects/[PROJECT]/locations/global/keyRings/[KEYRING]/cryptoKeys/[KEY] --bundle <FILE> <FILE>
 
   # sign a blob with a key pair stored in Hashicorp Vault
-  cosign sign-blob --key hashivault://[KEY] <FILE>
+  cosign sign-blob --key hashivault://[KEY] --bundle <FILE> <FILE>
 ```
 
 ### Options
 
 ```
-      --b64                              whether to base64 encode the output (default true)
       --bundle string                    write everything required to verify the blob to a FILE
       --fulcio-auth-flow string          fulcio interactive oauth2 flow to use for certificate from fulcio. Defaults to determining the flow based on the runtime environment. (options) normal|device|token|client_credentials
       --fulcio-url string                address of sigstore PKI server (default "https://fulcio.sigstore.dev")
@@ -45,18 +44,13 @@ cosign sign-blob [flags]
       --insecure-skip-verify             skip verifying fulcio published to the SCT (this should only be used for testing).
       --issue-certificate                issue a code signing certificate from Fulcio, even if a key is provided
       --key string                       path to the private key file, KMS URI or Kubernetes Secret
-      --new-bundle-format                output bundle in new format that contains all verification material (default true)
       --oidc-client-id string            OIDC client ID for application (default "sigstore")
       --oidc-client-secret-file string   Path to file containing OIDC client secret for application
       --oidc-disable-ambient-providers   Disable ambient OIDC providers. When true, ambient credentials will not be read
       --oidc-issuer string               OIDC provider to be used to issue ID token (default "https://oauth2.sigstore.dev/auth")
       --oidc-provider string             Specify the provider to get the OIDC token from (Optional). If unset, all options will be tried. Options include: [spiffe, google, github-actions, filesystem, buildkite-agent]
       --oidc-redirect-url string         OIDC redirect URL (Optional). The default oidc-redirect-url is 'http://localhost:0/auth/callback'.
-      --output string                    write the signature to FILE
-      --output-certificate string        write the certificate to FILE
-      --output-signature string          write the signature to FILE
       --rekor-url string                 address of rekor STL server (default "https://rekor.sigstore.dev")
-      --rfc3161-timestamp string         write the RFC3161 timestamp to a file
       --signing-config string            path to a signing config file. Must provide --bundle, which will output verification material in the new format
       --sk                               whether to use a hardware security key
       --slot string                      security key slot to use for generated key (default: signature) (authentication|signature|card-authentication|key-management)

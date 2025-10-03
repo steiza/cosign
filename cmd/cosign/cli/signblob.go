@@ -18,7 +18,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/sigstore/cosign/v3/cmd/cosign/cli/generate"
 	"github.com/sigstore/cosign/v3/cmd/cosign/cli/options"
@@ -38,28 +37,28 @@ func SignBlob() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sign-blob",
 		Short: "Sign the supplied blob, outputting the base64-encoded signature to stdout.",
-		Example: `  cosign sign-blob --key <key path>|<kms uri> <blob>
+		Example: `  cosign sign-blob --key <key path>|<kms uri> --bundle <output bundle> <blob>
 
   # sign a blob with Google sign-in (experimental)
-  cosign sign-blob <FILE> --output-signature <FILE> --output-certificate <FILE>
+  cosign sign-blob --bundle <FILE> <FILE>
 
   # sign a blob with a local key pair file
-  cosign sign-blob --key cosign.key <FILE>
+  cosign sign-blob --key cosign.key --bundle <FILE> <FILE>
 
   # sign a blob with a key stored in an environment variable
-  cosign sign-blob --key env://[ENV_VAR] <FILE>
+  cosign sign-blob --key env://[ENV_VAR] --bundle <FILE> <FILE>
 
   # sign a blob with a key pair stored in Azure Key Vault
-  cosign sign-blob --key azurekms://[VAULT_NAME][VAULT_URI]/[KEY] <FILE>
+  cosign sign-blob --key azurekms://[VAULT_NAME][VAULT_URI]/[KEY] --bundle <FILE> <FILE>
 
   # sign a blob with a key pair stored in AWS KMS
-  cosign sign-blob --key awskms://[ENDPOINT]/[ID/ALIAS/ARN] <FILE>
+  cosign sign-blob --key awskms://[ENDPOINT]/[ID/ALIAS/ARN] --bundle <FILE> <FILE>
 
   # sign a blob with a key pair stored in Google Cloud KMS
-  cosign sign-blob --key gcpkms://projects/[PROJECT]/locations/global/keyRings/[KEYRING]/cryptoKeys/[KEY] <FILE>
+  cosign sign-blob --key gcpkms://projects/[PROJECT]/locations/global/keyRings/[KEYRING]/cryptoKeys/[KEY] --bundle <FILE> <FILE>
 
   # sign a blob with a key pair stored in Hashicorp Vault
-  cosign sign-blob --key hashivault://[KEY] <FILE>`,
+  cosign sign-blob --key hashivault://[KEY] --bundle <FILE> <FILE>`,
 		Args:             cobra.MinimumNArgs(1),
 		PersistentPreRun: options.BindViper,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
@@ -90,14 +89,12 @@ func SignBlob() *cobra.Command {
 				OIDCRedirectURL:                o.OIDC.RedirectURL,
 				OIDCDisableProviders:           o.OIDC.DisableAmbientProviders,
 				BundlePath:                     o.BundlePath,
-				NewBundleFormat:                o.NewBundleFormat,
 				SkipConfirmation:               o.SkipConfirmation,
 				TSAClientCACert:                o.TSAClientCACert,
 				TSAClientCert:                  o.TSAClientCert,
 				TSAClientKey:                   o.TSAClientKey,
 				TSAServerName:                  o.TSAServerName,
 				TSAServerURL:                   o.TSAServerURL,
-				RFC3161TimestampPath:           o.RFC3161TimestampPath,
 				IssueCertificateForExistingKey: o.IssueCertificate,
 			}
 			// If a signing config is used, then service URLs cannot be specified
@@ -142,13 +139,7 @@ func SignBlob() *cobra.Command {
 			}
 
 			for _, blob := range args {
-				// TODO: remove when the output flag has been deprecated
-				if o.Output != "" {
-					fmt.Fprintln(os.Stderr, "WARNING: the '--output' flag is deprecated and will be removed in the future. Use '--output-signature'")
-					o.OutputSignature = o.Output
-				}
-
-				if _, err := sign.SignBlobCmd(ro, ko, blob, o.Base64Output, o.OutputSignature, o.OutputCertificate, o.TlogUpload); err != nil {
+				if _, err := sign.SignBlobCmd(ro, ko, blob, o.TlogUpload); err != nil {
 					return fmt.Errorf("signing %s: %w", blob, err)
 				}
 			}
