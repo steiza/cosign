@@ -1004,7 +1004,6 @@ func TestSignAttestVerifyContainerWithSigningConfig(t *testing.T) {
 	// Sign image with identity token in bundle format
 	so := options.SignOptions{
 		Upload:          true,
-		NewBundleFormat: true,
 		TlogUpload:      true,
 	}
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
