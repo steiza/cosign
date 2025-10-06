@@ -81,7 +81,7 @@ func TestSecretsKMS(t *testing.T) {
 	trustedRootPath := path.Join(td, "trusted_root.json")
 	trCmd := &trustedroot.CreateCmd{
 		Out: trustedRootPath,
-		RekorKeyPath: []string{env.VariableSigstoreRekorPublicKey.String()},
+		RekorKeyPath: []string{os.Getenv(env.VariableSigstoreRekorPublicKey.String())},
 	}
 	must(trCmd.Exec(ctx), t)
 
