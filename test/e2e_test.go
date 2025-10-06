@@ -537,40 +537,6 @@ func downloadTSACerts(downloadDirectory string, tsaServer string) (string, strin
 	return leafPath, intermediatePath, rootPath, nil
 }
 
-func prepareTrustedRoot(t *testing.T, tsaURL string) string {
-	downloadDirectory := t.TempDir()
-	caPath := filepath.Join(downloadDirectory, "fulcio.crt.pem")
-	caFP, err := os.Create(caPath)
-	must(err, t)
-	defer caFP.Close()
-	must(downloadFile(fulcioURL+"/api/v1/rootCert", caFP), t)
-	rekorPath := filepath.Join(downloadDirectory, "rekor.pub")
-	rekorFP, err := os.Create(rekorPath)
-	must(err, t)
-	defer rekorFP.Close()
-	must(downloadFile(rekorURL+"/api/v1/log/publicKey", rekorFP), t)
-	ctfePath := filepath.Join(downloadDirectory, "ctfe.pub")
-	home, err := os.UserHomeDir()
-	must(err, t)
-	must(copyFile(filepath.Join(home, "fulcio", "config", "ctfe", "pubkey.pem"), ctfePath), t)
-	out := filepath.Join(downloadDirectory, "trusted_root.json")
-	cmd := &trustedroot.CreateCmd{
-		CertChain:    []string{caPath},
-		CtfeKeyPath:  []string{ctfePath},
-		Out:          out,
-		RekorKeyPath: []string{rekorPath},
-	}
-	if tsaURL != "" {
-		tsaPath := filepath.Join(downloadDirectory, "tsa.crt.pem")
-		tsaFP, err := os.Create(tsaPath)
-		must(err, t)
-		must(downloadFile(tsaURL+"/api/v1/timestamp/certchain", tsaFP), t)
-		cmd.TSACertChainPath = []string{tsaPath}
-	}
-	must(cmd.Exec(context.TODO()), t)
-	return out
-}
-
 func TestSignVerifyWithTUFMirror(t *testing.T) {
 	home, err := os.UserHomeDir() // fulcio repo was downloaded to $HOME in e2e_test.sh
 	must(err, t)
@@ -1442,7 +1408,6 @@ func TestAttestationDownload(t *testing.T) {
 		PredicatePath:  slsaAttestationPath,
 		PredicateType:  "slsaprovenance",
 		Timeout:        30 * time.Second,
-		Replace:        true,
 		RekorEntryType: "dsse",
 	}
 	must(attestCommand.Exec(ctx, imgName), t)
@@ -1453,7 +1418,6 @@ func TestAttestationDownload(t *testing.T) {
 		PredicatePath:  vulnAttestationPath,
 		PredicateType:  "vuln",
 		Timeout:        30 * time.Second,
-		Replace:        true,
 		RekorEntryType: "dsse",
 	}
 	must(attestCommand.Exec(ctx, imgName), t)
@@ -1536,7 +1500,6 @@ func TestAttestationDownloadWithPredicateType(t *testing.T) {
 		PredicatePath:  slsaAttestationPath,
 		PredicateType:  "slsaprovenance",
 		Timeout:        30 * time.Second,
-		Replace:        true,
 		RekorEntryType: "dsse",
 	}
 	must(attestCommand.Exec(ctx, imgName), t)
@@ -1547,7 +1510,6 @@ func TestAttestationDownloadWithPredicateType(t *testing.T) {
 		PredicatePath:  vulnAttestationPath,
 		PredicateType:  "vuln",
 		Timeout:        30 * time.Second,
-		Replace:        true,
 		RekorEntryType: "dsse",
 	}
 	must(attestCommand.Exec(ctx, imgName), t)
@@ -1597,7 +1559,6 @@ func TestAttestationDownloadWithBadPredicateType(t *testing.T) {
 		PredicatePath:  slsaAttestationPath,
 		PredicateType:  "slsaprovenance",
 		Timeout:        30 * time.Second,
-		Replace:        true,
 		RekorEntryType: "dsse",
 	}
 	must(attestCommand.Exec(ctx, imgName), t)
@@ -1646,7 +1607,6 @@ func TestAttestationReplaceCreate(t *testing.T) {
 		PredicatePath:  slsaAttestationPath,
 		PredicateType:  "slsaprovenance",
 		Timeout:        30 * time.Second,
-		Replace:        true,
 		RekorEntryType: "dsse",
 	}
 	must(attestCommand.Exec(ctx, imgName), t)
@@ -1713,32 +1673,11 @@ func TestAttestationReplace(t *testing.T) {
 		t.Fatal(fmt.Errorf("expected len(attestations) == 1, got %d", len(attestations)))
 	}
 
-	// Attest again with replace=true, replacing the previous attestation
-	attestCommand = attest.AttestCommand{
-		KeyOpts:        ko,
-		PredicatePath:  slsaAttestationPath,
-		PredicateType:  "slsaprovenance",
-		Replace:        true,
-		Timeout:        30 * time.Second,
-		RekorEntryType: "dsse",
-	}
-	must(attestCommand.Exec(ctx, imgName), t)
-	attestations, err = cosign.FetchAttestationsForReference(ctx, ref, attOpts.PredicateType, ociremoteOpts...)
-
-	// Download and count the attestations
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(attestations) != 1 {
-		t.Fatal(fmt.Errorf("expected len(attestations) == 1, got %d", len(attestations)))
-	}
-
 	// Attest once more replace=true using a different predicate, to ensure it adds a new attestation
 	attestCommand = attest.AttestCommand{
 		KeyOpts:        ko,
 		PredicatePath:  slsaAttestationPath,
 		PredicateType:  "custom",
-		Replace:        true,
 		Timeout:        30 * time.Second,
 		RekorEntryType: "dsse",
 	}
@@ -2895,7 +2834,7 @@ func TestSignBlobNewBundleNonDefaultAlgorithm(t *testing.T) {
 				SkipConfirmation:               true,
 			}
 
-			if _, err := sign.SignBlobCmd(ro, ko, blobPath, true, "", "", true); err != nil {
+			if _, err := sign.SignBlobCmd(ro, ko, blobPath, true); err != nil {
 				t.Fatal(err)
 			}
 
@@ -3373,7 +3312,6 @@ func TestAttestBlobSignVerify(t *testing.T) {
 		KeyOpts:         ko,
 		PredicatePath:   predicatePath,
 		PredicateType:   predicateType,
-		OutputSignature: outputSignature,
 		RekorEntryType:  "dsse",
 	}
 	must(attestBlobCmd.Exec(ctx, bp), t)
@@ -3393,7 +3331,6 @@ func TestAttestBlobSignVerify(t *testing.T) {
 	attestBlobCmd = attest.AttestBlobCommand{
 		KeyOpts:         ko,
 		StatementPath:   statementPath,
-		OutputSignature: outputSignature,
 		RekorEntryType:  "dsse",
 	}
 	must(attestBlobCmd.Exec(ctx, bp), t)

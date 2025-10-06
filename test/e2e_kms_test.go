@@ -25,7 +25,7 @@ import (
 	"github.com/sigstore/cosign/v3/cmd/cosign/cli/generate"
 	"github.com/sigstore/cosign/v3/cmd/cosign/cli/options"
 	"github.com/sigstore/cosign/v3/cmd/cosign/cli/sign"
-	"github.com/sigstore/cosign/v3/pkg/cosign/env"
+	cliverify "github.com/sigstore/cosign/v3/cmd/cosign/cli/verify"
 	_ "github.com/sigstore/sigstore/pkg/signature/kms/hashivault"
 )
 
