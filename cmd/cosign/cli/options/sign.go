@@ -25,11 +25,6 @@ type SignOptions struct {
 	Cert                    string
 	CertChain               string
 	Upload                  bool
-	Output                  string // deprecated: TODO remove when the output flag is fully deprecated
-	OutputSignature         string // TODO: this should be the root output file arg.
-	OutputPayload           string
-	OutputCertificate       string
-	PayloadPath             string
 	Recursive               bool
 	Attachment              string
 	SkipConfirmation        bool
@@ -42,7 +37,6 @@ type SignOptions struct {
 	IssueCertificate        bool
 	SignContainerIdentity   string
 	RecordCreationTimestamp bool
-	NewBundleFormat         bool
 	UseSigningConfig        bool
 	SigningConfigPath       string
 	TrustedRootPath         string
@@ -51,7 +45,6 @@ type SignOptions struct {
 	Fulcio      FulcioOptions
 	OIDC        OIDCOptions
 	SecurityKey SecurityKeyOptions
-	AnnotationOptions
 	Registry             RegistryOptions
 	RegistryExperimental RegistryExperimentalOptions
 }
@@ -64,7 +57,6 @@ func (o *SignOptions) AddFlags(cmd *cobra.Command) {
 	o.Fulcio.AddFlags(cmd)
 	o.OIDC.AddFlags(cmd)
 	o.SecurityKey.AddFlags(cmd)
-	o.AnnotationOptions.AddFlags(cmd)
 	o.Registry.AddFlags(cmd)
 	o.RegistryExperimental.AddFlags(cmd)
 
@@ -85,24 +77,6 @@ func (o *SignOptions) AddFlags(cmd *cobra.Command) {
 
 	cmd.Flags().BoolVar(&o.Upload, "upload", true,
 		"whether to upload the signature")
-
-	cmd.Flags().StringVar(&o.OutputSignature, "output-signature", "",
-		"write the signature to FILE")
-	_ = cmd.MarkFlagFilename("output-signature", signatureExts...)
-	cmd.Flags().StringVar(&o.OutputPayload, "output-payload", "",
-		"write the signed payload to FILE")
-	// _ = cmd.MarkFlagFilename("output-payload") // no typical extensions
-
-	cmd.Flags().StringVar(&o.OutputCertificate, "output-certificate", "",
-		"write the certificate to FILE")
-	_ = cmd.MarkFlagFilename("output-certificate", certificateExts...)
-
-	cmd.Flags().StringVar(&o.PayloadPath, "payload", "",
-		"path to a payload file to use rather than generating one")
-	// _ = cmd.MarkFlagFilename("payload") // no typical extensions
-
-	cmd.Flags().BoolVarP(&o.Recursive, "recursive", "r", false,
-		"if a multi-arch image is specified, additionally sign each discrete image")
 
 	cmd.Flags().StringVar(&o.Attachment, "attachment", "",
 		"DEPRECATED, related image attachment to sign (sbom), default none")
@@ -141,8 +115,6 @@ func (o *SignOptions) AddFlags(cmd *cobra.Command) {
 		"manually set the .critical.docker-reference field for the signed identity, which is useful when image proxies are being used where the pull reference should match the signature")
 
 	cmd.Flags().BoolVar(&o.RecordCreationTimestamp, "record-creation-timestamp", false, "set the createdAt timestamp in the signature artifact to the time it was created; by default, cosign sets this to the zero value")
-
-	cmd.Flags().BoolVar(&o.NewBundleFormat, "new-bundle-format", true, "expect the signature/attestation to be packaged in a Sigstore bundle")
 
 	// TODO: have this default to true as a breaking change
 	cmd.Flags().BoolVar(&o.UseSigningConfig, "use-signing-config", false,

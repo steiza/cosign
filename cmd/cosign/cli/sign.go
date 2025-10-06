@@ -140,10 +140,6 @@ race conditions or (worse) malicious tampering.
 					o.TSAServerURL != "") {
 				return fmt.Errorf("cannot specify service URLs and use signing config")
 			}
-			// Signing config requires a bundle as output for verification materials since sigstore-go is used
-			if (o.UseSigningConfig || o.SigningConfigPath != "") && !o.NewBundleFormat {
-				return fmt.Errorf("must provide --new-bundle-format with --signing-config or --use-signing-config")
-			}
 			// Fetch a trusted root when:
 			// * requesting a certificate and no CT log key is provided to verify an SCT
 			// * using a signing config and signing using sigstore-go

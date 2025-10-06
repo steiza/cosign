@@ -74,7 +74,6 @@ cosign sign [flags]
 ```
       --allow-http-registry                                                                      whether to allow using HTTP protocol while connecting to registries. Don't use this for anything but testing
       --allow-insecure-registry                                                                  whether to allow insecure connections to registries (e.g., with expired or self-signed TLS certificates). Don't use this for anything but testing
-  -a, --annotations strings                                                                      extra key=value pairs to sign
       --attachment string                                                                        DEPRECATED, related image attachment to sign (sbom), default none
       --attachment-tag-prefix [AttachmentTagPrefix]sha256-[TargetImageDigest].[AttachmentName]   optional custom prefix to use for attached image tags. Attachment images are tagged as: [AttachmentTagPrefix]sha256-[TargetImageDigest].[AttachmentName]
       --certificate string                                                                       path to the X.509 certificate in PEM format to include in the OCI Signature
@@ -87,19 +86,13 @@ cosign sign [flags]
       --issue-certificate                                                                        issue a code signing certificate from Fulcio, even if a key is provided
       --k8s-keychain                                                                             whether to use the kubernetes keychain instead of the default keychain (supports workload identity).
       --key string                                                                               path to the private key file, KMS URI or Kubernetes Secret
-      --new-bundle-format                                                                        expect the signature/attestation to be packaged in a Sigstore bundle (default true)
       --oidc-client-id string                                                                    OIDC client ID for application (default "sigstore")
       --oidc-client-secret-file string                                                           Path to file containing OIDC client secret for application
       --oidc-disable-ambient-providers                                                           Disable ambient OIDC providers. When true, ambient credentials will not be read
       --oidc-issuer string                                                                       OIDC provider to be used to issue ID token (default "https://oauth2.sigstore.dev/auth")
       --oidc-provider string                                                                     Specify the provider to get the OIDC token from (Optional). If unset, all options will be tried. Options include: [spiffe, google, github-actions, filesystem, buildkite-agent]
       --oidc-redirect-url string                                                                 OIDC redirect URL (Optional). The default oidc-redirect-url is 'http://localhost:0/auth/callback'.
-      --output-certificate string                                                                write the certificate to FILE
-      --output-payload string                                                                    write the signed payload to FILE
-      --output-signature string                                                                  write the signature to FILE
-      --payload string                                                                           path to a payload file to use rather than generating one
       --record-creation-timestamp                                                                set the createdAt timestamp in the signature artifact to the time it was created; by default, cosign sets this to the zero value
-  -r, --recursive                                                                                if a multi-arch image is specified, additionally sign each discrete image
       --registry-cacert string                                                                   path to the X.509 CA certificate file in PEM format to be used for the connection to the registry
       --registry-client-cert string                                                              path to the X.509 certificate file in PEM format to be used for the connection to the registry
       --registry-client-key string                                                               path to the X.509 private key file in PEM format to be used, together with the 'registry-client-cert' value, for the connection to the registry
