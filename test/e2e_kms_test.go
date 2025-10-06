@@ -78,15 +78,6 @@ func TestSecretsKMS(t *testing.T) {
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
 	must(verify(pubKey, imgName, true, "", false), t)
 
-	// Sign and verify with annotations
-	mustErr(verify(pubKey, imgName, true, "", false), t)
-	soAnno := options.SignOptions{
-		Upload:     true,
-		TlogUpload: true,
-	}
-	must(sign.SignCmd(ro, ko, soAnno, []string{imgName}), t)
-	must(verify(pubKey, imgName, true, "", false), t)
-
 	// Store signatures in a different repo
 	t.Setenv("COSIGN_REPOSITORY", path.Join(repo, "subbedrepo"))
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)

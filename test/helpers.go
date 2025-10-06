@@ -75,13 +75,14 @@ var passFunc = func(_ bool) ([]byte, error) {
 
 var verify = func(keyRef, imageRef string, checkClaims bool, attachment string, skipTlogVerify bool) error {
 	cmd := cliverify.VerifyCommand{
-		KeyRef:        keyRef,
-		RekorURL:      rekorURL,
-		CheckClaims:   checkClaims,
-		Attachment:    attachment,
-		HashAlgorithm: crypto.SHA256,
-		MaxWorkers:    10,
-		IgnoreTlog:    skipTlogVerify,
+		KeyRef:          keyRef,
+		RekorURL:        rekorURL,
+		CheckClaims:     checkClaims,
+		Attachment:      attachment,
+		HashAlgorithm:   crypto.SHA256,
+		MaxWorkers:      10,
+		IgnoreTlog:      skipTlogVerify,
+		NewBundleFormat: true,
 	}
 
 	args := []string{imageRef}
