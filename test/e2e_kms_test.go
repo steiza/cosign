@@ -25,6 +25,8 @@ import (
 	"github.com/sigstore/cosign/v3/cmd/cosign/cli/generate"
 	"github.com/sigstore/cosign/v3/cmd/cosign/cli/options"
 	"github.com/sigstore/cosign/v3/cmd/cosign/cli/sign"
+	"github.com/sigstore/cosign/v3/cmd/cosign/cli/trustedroot"
+	"github.com/sigstore/cosign/v3/pkg/cosign/env"
 	cliverify "github.com/sigstore/cosign/v3/cmd/cosign/cli/verify"
 	_ "github.com/sigstore/sigstore/pkg/signature/kms/hashivault"
 )
@@ -75,7 +77,13 @@ func TestSecretsKMS(t *testing.T) {
 	}
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
 
-	trustedRootPath := prepareTrustedRoot(t, "")
+	must(downloadAndSetEnv(t, rekorURL+"/api/v1/log/publicKey", env.VariableSigstoreRekorPublicKey.String(), td), t)
+	trustedRootPath := path.Join(td, "trusted_root.json")
+	trCmd := &trustedroot.CreateCmd{
+		Out: trustedRootPath,
+		RekorKeyPath: []string{env.VariableSigstoreRekorPublicKey.String()},
+	}
+	must(trCmd.Exec(ctx), t)
 
 	cmd := cliverify.VerifyCommand{
 		CommonVerifyOptions: options.CommonVerifyOptions{
