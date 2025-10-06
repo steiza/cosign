@@ -29,7 +29,6 @@ type SignBlobOptions struct {
 	OIDC             OIDCOptions
 	Registry         RegistryOptions
 	BundlePath       string
-	NewBundleFormat  bool
 	SkipConfirmation bool
 	TlogUpload       bool
 	TSAClientCACert  string

@@ -949,7 +949,6 @@ func TestSignAttestVerifyBlobWithSigningConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	attBundlePath := filepath.Join(attestDir, "attest.bundle.json")
-	ko.NewBundleFormat = true
 	ko.BundlePath = attBundlePath
 
 	attestBlobCmd := attest.AttestBlobCommand{
@@ -960,6 +959,7 @@ func TestSignAttestVerifyBlobWithSigningConfig(t *testing.T) {
 	must(attestBlobCmd.Exec(ctx, bp), t)
 
 	// Verify an attestation
+	ko.NewBundleFormat = true
 	verifyBlobAttestationCmd := cliverify.VerifyBlobAttestationCommand{
 		KeyOpts: ko,
 		CertVerifyOptions: options.CertVerifyOptions{
@@ -1022,7 +1022,6 @@ func TestSignAttestVerifyContainerWithSigningConfig(t *testing.T) {
 
 	ko := options.KeyOpts{
 		IDToken:          identityToken,
-		NewBundleFormat:  true,
 		SkipConfirmation: true,
 	}
 	trustedMaterial, err := cosign.TrustedRoot()
@@ -1159,7 +1158,6 @@ func TestSignVerifyWithSigningConfigWithKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	attBundlePath := filepath.Join(attestDir, "attest.bundle.json")
-	ko.NewBundleFormat = true
 	ko.BundlePath = attBundlePath
 	ko.KeyRef = privKeyPath
 
@@ -1172,6 +1170,7 @@ func TestSignVerifyWithSigningConfigWithKey(t *testing.T) {
 
 	// Verify an attestation with the key in the trusted root
 	ko.KeyRef = pubKeyPath
+	ko.NewBundleFormat = true
 	verifyBlobAttestationCmd := cliverify.VerifyBlobAttestationCommand{
 		KeyOpts:     ko,
 		Digest:      "7e9b6e7ba2842c91cf49f3e214d04a7a496f8214356f41d81a6e6dcad11f11e3",
@@ -1205,7 +1204,6 @@ func TestSignVerifyBundle(t *testing.T) {
 	}
 	so := options.SignOptions{
 		Upload:          true,
-		NewBundleFormat: true,
 		TlogUpload:      true,
 	}
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
@@ -1233,7 +1231,6 @@ func TestSignVerifyBundle(t *testing.T) {
 	}
 	so = options.SignOptions{
 		Upload:          true,
-		NewBundleFormat: true,
 		TlogUpload:      false,
 	}
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
@@ -1263,7 +1260,6 @@ func TestSignVerifyBundle(t *testing.T) {
 	}
 	so = options.SignOptions{
 		Upload:          true,
-		NewBundleFormat: true,
 		TlogUpload:      true,
 	}
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
@@ -1384,7 +1380,7 @@ func attestVerify(t *testing.T, newBundleFormat bool, predicateType, attestation
 	}
 
 	// Now attest the image
-	ko := options.KeyOpts{KeyRef: privKeyPath, PassFunc: passFunc, NewBundleFormat: newBundleFormat}
+	ko := options.KeyOpts{KeyRef: privKeyPath, PassFunc: passFunc}
 	attestCmd := attest.AttestCommand{
 		KeyOpts:        ko,
 		PredicatePath:  attestationPath,
@@ -1921,7 +1917,6 @@ func TestAttestationBlobRFC3161Timestamp(t *testing.T) {
 	ko := options.KeyOpts{
 		KeyRef:          privKeyPath,
 		BundlePath:      bundlePath,
-		NewBundleFormat: true,
 		TSAServerURL:    server.URL + "/api/v1/timestamp",
 		PassFunc:        passFunc,
 	}
@@ -2818,7 +2813,6 @@ func TestSignBlobNewBundleNonSHA256(t *testing.T) {
 		KeyRef:          privKeyPath,
 		PassFunc:        passFunc,
 		BundlePath:      bundlePath,
-		NewBundleFormat: true,
 	}
 	if _, err := sign.SignBlobCmd(ro, ko, blobPath, false); err != nil {
 		t.Fatal(err)
@@ -2931,7 +2925,6 @@ func TestSignBlobNewBundleNonDefaultAlgorithm(t *testing.T) {
 				KeyRef:                         privKeyPath,
 				PassFunc:                       passFunc,
 				BundlePath:                     bundlePath,
-				NewBundleFormat:                true,
 				IssueCertificateForExistingKey: true,
 				SkipConfirmation:               true,
 			}
