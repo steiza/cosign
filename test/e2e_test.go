@@ -103,7 +103,7 @@ func TestSignVerify(t *testing.T) {
 
 	ctx := context.Background()
 	// Verify should fail at first
-	mustErr(verify(pubKeyPath, imgName, true, nil, "", false), t)
+	mustErr(verify(pubKeyPath, imgName, true, "", false), t)
 	// So should download
 	mustErr(download.SignatureCmd(ctx, options.RegistryOptions{}, imgName), t)
 
@@ -121,7 +121,7 @@ func TestSignVerify(t *testing.T) {
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
 
 	// Now verify and download should work!
-	must(verify(pubKeyPath, imgName, true, nil, "", false), t)
+	must(verify(pubKeyPath, imgName, true, "", false), t)
 	must(download.SignatureCmd(ctx, options.RegistryOptions{}, imgName), t)
 
 	// Ensure it verifies if you default to the new protobuf bundle format
@@ -131,21 +131,6 @@ func TestSignVerify(t *testing.T) {
 		NewBundleFormat: true,
 	}
 	must(cmd.Exec(ctx, []string{imgName}), t)
-
-	// Look for a specific annotation
-	mustErr(verify(pubKeyPath, imgName, true, map[string]interface{}{"foo": "bar"}, "", false), t)
-
-	so.AnnotationOptions = options.AnnotationOptions{
-		Annotations: []string{"foo=bar"},
-	}
-	// Sign the image with an annotation
-	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
-
-	// It should match this time.
-	must(verify(pubKeyPath, imgName, true, map[string]interface{}{"foo": "bar"}, "", false), t)
-
-	// But two doesn't work
-	mustErr(verify(pubKeyPath, imgName, true, map[string]interface{}{"foo": "bar", "baz": "bat"}, "", false), t)
 }
 
 func TestSignVerifyCertBundle(t *testing.T) {
@@ -169,7 +154,7 @@ func TestSignVerifyCertBundle(t *testing.T) {
 
 	ctx := context.Background()
 	// Verify should fail at first
-	mustErr(verifyCertBundle(pubKeyPath, caCertFile, caIntermediateCertFile, imgName, true, nil, "", true), t)
+	mustErr(verifyCertBundle(pubKeyPath, caCertFile, caIntermediateCertFile, imgName, true, "", true), t)
 	// So should download
 	mustErr(download.SignatureCmd(ctx, options.RegistryOptions{}, imgName), t)
 
@@ -188,25 +173,10 @@ func TestSignVerifyCertBundle(t *testing.T) {
 
 	// Now verify and download should work!
 	ignoreTlog := true
-	must(verifyCertBundle(pubKeyPath, caCertFile, caIntermediateCertFile, imgName, true, nil, "", ignoreTlog), t)
+	must(verifyCertBundle(pubKeyPath, caCertFile, caIntermediateCertFile, imgName, true, "", ignoreTlog), t)
 	// verification with certificate chain instead of root/intermediate files should work as well
-	must(verifyCertChain(pubKeyPath, certChainFile, certFile, imgName, true, nil, "", ignoreTlog), t)
+	must(verifyCertChain(pubKeyPath, certChainFile, certFile, imgName, true, "", ignoreTlog), t)
 	must(download.SignatureCmd(ctx, options.RegistryOptions{}, imgName), t)
-
-	// Look for a specific annotation
-	mustErr(verifyCertBundle(pubKeyPath, caCertFile, caIntermediateCertFile, imgName, true, map[string]interface{}{"foo": "bar"}, "", ignoreTlog), t)
-
-	so.AnnotationOptions = options.AnnotationOptions{
-		Annotations: []string{"foo=bar"},
-	}
-	// Sign the image with an annotation
-	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
-
-	// It should match this time.
-	must(verifyCertBundle(pubKeyPath, caCertFile, caIntermediateCertFile, imgName, true, map[string]interface{}{"foo": "bar"}, "", ignoreTlog), t)
-
-	// But two doesn't work
-	mustErr(verifyCertBundle(pubKeyPath, caCertFile, caIntermediateCertFile, imgName, true, map[string]interface{}{"foo": "bar", "baz": "bat"}, "", ignoreTlog), t)
 }
 
 func TestSignVerifyClean(t *testing.T) {
@@ -241,14 +211,14 @@ func TestSignVerifyClean(t *testing.T) {
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
 
 	// Now verify and download should work!
-	must(verify(pubKeyPath, imgName, true, nil, "", false), t)
+	must(verify(pubKeyPath, imgName, true, "", false), t)
 	must(download.SignatureCmd(ctx, options.RegistryOptions{}, imgName), t)
 
 	// Now clean signature from the given image
 	must(cli.CleanCmd(ctx, options.RegistryOptions{}, "all", imgName, true), t)
 
 	// It doesn't work
-	mustErr(verify(pubKeyPath, imgName, true, nil, "", false), t)
+	mustErr(verify(pubKeyPath, imgName, true, "", false), t)
 }
 
 func TestImportSignVerifyClean(t *testing.T) {
@@ -283,14 +253,14 @@ func TestImportSignVerifyClean(t *testing.T) {
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
 
 	// Now verify and download should work!
-	must(verify(pubKeyPath, imgName, true, nil, "", false), t)
+	must(verify(pubKeyPath, imgName, true, "", false), t)
 	must(download.SignatureCmd(ctx, options.RegistryOptions{}, imgName), t)
 
 	// Now clean signature from the given image
 	must(cli.CleanCmd(ctx, options.RegistryOptions{}, "all", imgName, true), t)
 
 	// It doesn't work
-	mustErr(verify(pubKeyPath, imgName, true, nil, "", false), t)
+	mustErr(verify(pubKeyPath, imgName, true, "", false), t)
 }
 
 type targetInfo struct {
@@ -1406,9 +1376,6 @@ func attestVerify(t *testing.T, newBundleFormat bool, predicateType, attestation
 		t.Fatal(err)
 	}
 	must(verifyAttestation.Exec(ctx, []string{imgName}), t)
-
-	// Look for a specific annotation
-	mustErr(verify(pubKeyPath, imgName, true, map[string]interface{}{"foo": "bar"}, "", false), t)
 }
 
 func TestAttestationDownload(t *testing.T) {
@@ -2261,10 +2228,10 @@ func TestRekorBundle(t *testing.T) {
 	// Sign the image
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
 	// Make sure verify works
-	must(verify(pubKeyPath, imgName, true, nil, "", false), t)
+	must(verify(pubKeyPath, imgName, true, "", false), t)
 
 	// Make sure offline verification works with bundling
-	must(verifyOffline(pubKeyPath, imgName, true, nil, ""), t)
+	must(verifyOffline(pubKeyPath, imgName, true, ""), t)
 }
 
 func TestRekorOutput(t *testing.T) {
@@ -2299,7 +2266,7 @@ func TestRekorOutput(t *testing.T) {
 	// Sign the image
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
 	// Make sure verify works
-	must(verify(pubKeyPath, imgName, true, nil, "", false), t)
+	must(verify(pubKeyPath, imgName, true, "", false), t)
 
 	if file, err := os.ReadFile(bundlePath); err != nil {
 		t.Fatal(err)
@@ -2310,7 +2277,7 @@ func TestRekorOutput(t *testing.T) {
 		}
 	}
 	// Make sure offline verification works with bundling
-	must(verifyOffline(pubKeyPath, imgName, true, nil, ""), t)
+	must(verifyOffline(pubKeyPath, imgName, true, ""), t)
 }
 
 func TestFulcioBundle(t *testing.T) {
@@ -2346,11 +2313,11 @@ func TestFulcioBundle(t *testing.T) {
 	// Sign the image
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
 	// Make sure verify works
-	must(verify(pubKeyPath, imgName, true, nil, "", false), t)
+	must(verify(pubKeyPath, imgName, true, "", false), t)
 
 	// Make sure offline verification works with bundling
 	// use rekor prod since we have hardcoded the public key
-	must(verifyOffline(pubKeyPath, imgName, true, nil, ""), t)
+	must(verifyOffline(pubKeyPath, imgName, true, ""), t)
 }
 
 func TestRFC3161Timestamp(t *testing.T) {
@@ -2405,7 +2372,7 @@ func TestRFC3161Timestamp(t *testing.T) {
 	// Sign the image
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
 	// Make sure verify works against the TSA server
-	must(verifyTSA(pubKeyPath, imgName, true, nil, "", file.Name(), true), t)
+	must(verifyTSA(pubKeyPath, imgName, true, "", file.Name(), true), t)
 }
 
 func TestRekorBundleAndRFC3161Timestamp(t *testing.T) {
@@ -2467,7 +2434,7 @@ func TestRekorBundleAndRFC3161Timestamp(t *testing.T) {
 	// Sign the image
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
 	// Make sure verify works against the Rekor and TSA clients
-	must(verifyTSA(pubKeyPath, imgName, true, nil, "", file.Name(), false), t)
+	must(verifyTSA(pubKeyPath, imgName, true, "", file.Name(), false), t)
 }
 
 func TestDuplicateSign(t *testing.T) {
@@ -2489,7 +2456,7 @@ func TestDuplicateSign(t *testing.T) {
 
 	ctx := context.Background()
 	// Verify should fail at first
-	mustErr(verify(pubKeyPath, imgName, true, nil, "", true), t)
+	mustErr(verify(pubKeyPath, imgName, true, "", true), t)
 	// So should download
 	mustErr(download.SignatureCmd(ctx, options.RegistryOptions{}, imgName), t)
 
@@ -2505,7 +2472,7 @@ func TestDuplicateSign(t *testing.T) {
 
 	// Now verify and download should work!
 	// Ignore the tlog, because uploading to the tlog causes new signatures with new timestamp entries to be appended.
-	must(verify(pubKeyPath, imgName, true, nil, "", true), t)
+	must(verify(pubKeyPath, imgName, true, "", true), t)
 	must(download.SignatureCmd(ctx, options.RegistryOptions{}, imgName), t)
 
 	// Signing again should work just fine...
@@ -2530,7 +2497,7 @@ func TestKeyURLVerify(t *testing.T) {
 	keyRef := "https://raw.githubusercontent.com/GoogleContainerTools/distroless/main/cosign.pub"
 	img := "gcr.io/distroless/base:latest"
 
-	must(verify(keyRef, img, true, nil, "", false), t)
+	must(verify(keyRef, img, true, "", false), t)
 }
 
 func TestGenerateKeyPairEnvVar(t *testing.T) {
@@ -2611,8 +2578,8 @@ func TestMultipleSignatures(t *testing.T) {
 	_, priv2, pub2 := keypair(t, td2)
 
 	// Verify should fail at first for both keys
-	mustErr(verify(pub1, imgName, true, nil, "", false), t)
-	mustErr(verify(pub2, imgName, true, nil, "", false), t)
+	mustErr(verify(pub1, imgName, true, "", false), t)
+	mustErr(verify(pub2, imgName, true, "", false), t)
 
 	// Now sign the image with one key
 	ko := options.KeyOpts{
@@ -2627,16 +2594,16 @@ func TestMultipleSignatures(t *testing.T) {
 	}
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
 	// Now verify should work with that one, but not the other
-	must(verify(pub1, imgName, true, nil, "", false), t)
-	mustErr(verify(pub2, imgName, true, nil, "", false), t)
+	must(verify(pub1, imgName, true, "", false), t)
+	mustErr(verify(pub2, imgName, true, "", false), t)
 
 	// Now sign with the other key too
 	ko.KeyRef = priv2
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
 
 	// Now verify should work with both
-	must(verify(pub1, imgName, true, nil, "", false), t)
-	must(verify(pub2, imgName, true, nil, "", false), t)
+	must(verify(pub1, imgName, true, "", false), t)
+	must(verify(pub2, imgName, true, "", false), t)
 }
 
 func TestSignBlob(t *testing.T) {
@@ -3020,19 +2987,19 @@ func TestSaveLoad(t *testing.T) {
 				TlogUpload: true,
 			}
 			must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
-			must(verify(pubKeyPath, imgName, true, nil, "", false), t)
+			must(verify(pubKeyPath, imgName, true, "", false), t)
 
 			// save the image to a temp dir
 			imageDir := t.TempDir()
 			must(cli.SaveCmd(ctx, options.SaveOptions{Directory: imageDir}, imgName), t)
 
 			// verify the local image using a local key
-			must(verifyLocal(pubKeyPath, imageDir, true, nil, ""), t)
+			must(verifyLocal(pubKeyPath, imageDir, true, ""), t)
 
 			// load the image from the temp dir into a new image and verify the new image
 			imgName2 := path.Join(repo, fmt.Sprintf("save-load-%d-2", i))
 			must(cli.LoadCmd(ctx, options.LoadOptions{Directory: imageDir}, imgName2), t)
-			must(verify(pubKeyPath, imgName2, true, nil, "", false), t)
+			must(verify(pubKeyPath, imgName2, true, "", false), t)
 		})
 	}
 }
@@ -3067,7 +3034,7 @@ func TestSaveLoadAttestation(t *testing.T) {
 		TlogUpload: true,
 	}
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
-	must(verify(pubKeyPath, imgName, true, nil, "", false), t)
+	must(verify(pubKeyPath, imgName, true, "", false), t)
 
 	// now, append an attestation to the image
 	slsaAttestation := `{ "buildType": "x", "builder": { "id": "2" }, "recipe": {} }`
@@ -3094,7 +3061,7 @@ func TestSaveLoadAttestation(t *testing.T) {
 	// load the image from the temp dir into a new image and verify the new image
 	imgName2 := path.Join(repo, "save-load-2")
 	must(cli.LoadCmd(ctx, options.LoadOptions{Directory: imageDir}, imgName2), t)
-	must(verify(pubKeyPath, imgName2, true, nil, "", false), t)
+	must(verify(pubKeyPath, imgName2, true, "", false), t)
 	// Use cue to verify attestation on the new image
 	policyPath := filepath.Join(td, "policy.cue")
 	verifyAttestation := cliverify.VerifyAttestationCommand{
@@ -3169,8 +3136,8 @@ func TestAttachSBOM(t *testing.T) {
 	_, _, pubKeyPath2 := keypair(t, td2)
 
 	// Verify should fail on a bad input
-	mustErr(verify(pubKeyPath1, imgName, true, nil, "sbom", false), t)
-	mustErr(verify(pubKeyPath2, imgName, true, nil, "sbom", false), t)
+	mustErr(verify(pubKeyPath1, imgName, true, "sbom", false), t)
+	mustErr(verify(pubKeyPath2, imgName, true, "sbom", false), t)
 
 	// Now sign the sbom with one key
 	ko1 := options.KeyOpts{
@@ -3186,8 +3153,8 @@ func TestAttachSBOM(t *testing.T) {
 	must(sign.SignCmd(ro, ko1, so, []string{imgName}), t)
 
 	// Now verify should work with that one, but not the other
-	must(verify(pubKeyPath1, imgName, true, nil, "sbom", false), t)
-	mustErr(verify(pubKeyPath2, imgName, true, nil, "sbom", false), t)
+	must(verify(pubKeyPath1, imgName, true, "sbom", false), t)
+	mustErr(verify(pubKeyPath2, imgName, true, "sbom", false), t)
 }
 
 func TestNoTlog(t *testing.T) {
@@ -3203,7 +3170,7 @@ func TestNoTlog(t *testing.T) {
 	_, privKeyPath, pubKeyPath := keypair(t, td)
 
 	// Verify should fail at first
-	mustErr(verify(pubKeyPath, imgName, true, nil, "", true), t)
+	mustErr(verify(pubKeyPath, imgName, true, "", true), t)
 
 	// Now sign the image without the tlog
 	ko := options.KeyOpts{
@@ -3217,7 +3184,7 @@ func TestNoTlog(t *testing.T) {
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
 
 	// Now verify should work!
-	must(verify(pubKeyPath, imgName, true, nil, "", true), t)
+	must(verify(pubKeyPath, imgName, true, "", true), t)
 }
 
 func TestGetPublicKeyCustomOut(t *testing.T) {
@@ -3276,7 +3243,7 @@ func TestInvalidBundle(t *testing.T) {
 	}
 	must(sign.SignCmd(ro, ko, so, []string{img1}), t)
 	// verify image1
-	must(verify(pubKeyPath, img1, true, nil, "", false), t)
+	must(verify(pubKeyPath, img1, true, "", false), t)
 	// extract the bundle from image1
 	si, err := ociremote.SignedImage(imgRef, remoteOpts)
 	must(err, t)
@@ -3303,7 +3270,7 @@ func TestInvalidBundle(t *testing.T) {
 		TlogUpload: false,
 	}
 	must(sign.SignCmd(ro, ko, so, []string{img2}), t)
-	must(verify(pubKeyPath, img2, true, nil, "", true), t)
+	must(verify(pubKeyPath, img2, true, "", true), t)
 
 	si2, err := ociremote.SignedEntity(imgRef2, remoteOpts)
 	must(err, t)
@@ -3325,7 +3292,7 @@ func TestInvalidBundle(t *testing.T) {
 	if err := remote.Delete(sigsTag); err != nil {
 		t.Fatal(err)
 	}
-	mustErr(verify(pubKeyPath, img2, true, nil, "", false), t)
+	mustErr(verify(pubKeyPath, img2, true, "", false), t)
 
 	newSig, err := mutate.Signature(gottenSigs2[0], mutate.WithBundle(bund))
 	must(err, t)
@@ -3475,7 +3442,7 @@ func TestOffline(t *testing.T) {
 	}
 	must(sign.SignCmd(ro, ko, so, []string{img1}), t)
 	// verify image1 online and offline
-	must(verify(pubKeyPath, img1, true, nil, "", false), t)
+	must(verify(pubKeyPath, img1, true, "", false), t)
 	verifyCmd := &cliverify.VerifyCommand{
 		KeyRef:      pubKeyPath,
 		RekorURL:    "notreal",
@@ -3514,7 +3481,7 @@ func TestOffline(t *testing.T) {
 	newImage, err := mutate.AttachSignatureToEntity(si, newSig)
 	must(err, t)
 
-	mustErr(verify(pubKeyPath, img1, true, nil, "", false), t)
+	mustErr(verify(pubKeyPath, img1, true, "", false), t)
 	if err := ociremote.WriteSignatures(sigsTag.Repository, newImage); err != nil {
 		t.Fatal(err)
 	}

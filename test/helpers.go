@@ -74,12 +74,11 @@ var passFunc = func(_ bool) ([]byte, error) {
 	return keyPass, nil
 }
 
-var verify = func(keyRef, imageRef string, checkClaims bool, annotations map[string]interface{}, attachment string, skipTlogVerify bool) error {
+var verify = func(keyRef, imageRef string, checkClaims bool, attachment string, skipTlogVerify bool) error {
 	cmd := cliverify.VerifyCommand{
 		KeyRef:        keyRef,
 		RekorURL:      rekorURL,
 		CheckClaims:   checkClaims,
-		Annotations:   sigs.AnnotationsMap{Annotations: annotations},
 		Attachment:    attachment,
 		HashAlgorithm: crypto.SHA256,
 		MaxWorkers:    10,
@@ -91,12 +90,11 @@ var verify = func(keyRef, imageRef string, checkClaims bool, annotations map[str
 	return cmd.Exec(context.Background(), args)
 }
 
-var verifyCertChain = func(keyRef, certChain, certFile, imageRef string, checkClaims bool, annotations map[string]interface{}, attachment string, skipTlogVerify bool) error {
+var verifyCertChain = func(keyRef, certChain, certFile, imageRef string, checkClaims bool, attachment string, skipTlogVerify bool) error {
 	cmd := cliverify.VerifyCommand{
 		KeyRef:        keyRef,
 		RekorURL:      rekorURL,
 		CheckClaims:   checkClaims,
-		Annotations:   sigs.AnnotationsMap{Annotations: annotations},
 		Attachment:    attachment,
 		HashAlgorithm: crypto.SHA256,
 		MaxWorkers:    10,
@@ -112,12 +110,11 @@ var verifyCertChain = func(keyRef, certChain, certFile, imageRef string, checkCl
 	return cmd.Exec(context.Background(), args)
 }
 
-var verifyCertBundle = func(keyRef, caCertFile, caIntermediateCertFile, imageRef string, checkClaims bool, annotations map[string]interface{}, attachment string, skipTlogVerify bool) error {
+var verifyCertBundle = func(keyRef, caCertFile, caIntermediateCertFile, imageRef string, checkClaims bool, attachment string, skipTlogVerify bool) error {
 	cmd := cliverify.VerifyCommand{
 		KeyRef:        keyRef,
 		RekorURL:      rekorURL,
 		CheckClaims:   checkClaims,
-		Annotations:   sigs.AnnotationsMap{Annotations: annotations},
 		Attachment:    attachment,
 		HashAlgorithm: crypto.SHA256,
 		MaxWorkers:    10,
@@ -135,12 +132,11 @@ var verifyCertBundle = func(keyRef, caCertFile, caIntermediateCertFile, imageRef
 	return cmd.Exec(context.Background(), args)
 }
 
-var verifyTSA = func(keyRef, imageRef string, checkClaims bool, annotations map[string]interface{}, attachment, tsaCertChain string, skipTlogVerify bool) error {
+var verifyTSA = func(keyRef, imageRef string, checkClaims bool, attachment, tsaCertChain string, skipTlogVerify bool) error {
 	cmd := cliverify.VerifyCommand{
 		KeyRef:           keyRef,
 		RekorURL:         rekorURL,
 		CheckClaims:      checkClaims,
-		Annotations:      sigs.AnnotationsMap{Annotations: annotations},
 		Attachment:       attachment,
 		HashAlgorithm:    crypto.SHA256,
 		TSACertChainPath: tsaCertChain,
@@ -222,12 +218,11 @@ var verifyBlobKeylessWithCARoots = func(blobRef string,
 }
 
 // Used to verify local images stored on disk
-var verifyLocal = func(keyRef, path string, checkClaims bool, annotations map[string]interface{}, attachment string) error {
+var verifyLocal = func(keyRef, path string, checkClaims bool, attachment string) error {
 	cmd := cliverify.VerifyCommand{
 		KeyRef:        keyRef,
 		RekorURL:      rekorURL,
 		CheckClaims:   checkClaims,
-		Annotations:   sigs.AnnotationsMap{Annotations: annotations},
 		Attachment:    attachment,
 		HashAlgorithm: crypto.SHA256,
 		LocalImage:    true,
@@ -239,13 +234,12 @@ var verifyLocal = func(keyRef, path string, checkClaims bool, annotations map[st
 	return cmd.Exec(context.Background(), args)
 }
 
-var verifyOffline = func(keyRef, imageRef string, checkClaims bool, annotations map[string]interface{}, attachment string) error {
+var verifyOffline = func(keyRef, imageRef string, checkClaims bool, attachment string) error {
 	cmd := cliverify.VerifyCommand{
 		KeyRef:        keyRef,
 		RekorURL:      "notreal",
 		Offline:       true,
 		CheckClaims:   checkClaims,
-		Annotations:   sigs.AnnotationsMap{Annotations: annotations},
 		Attachment:    attachment,
 		HashAlgorithm: crypto.SHA256,
 		MaxWorkers:    10,
