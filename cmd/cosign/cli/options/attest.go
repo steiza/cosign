@@ -38,7 +38,6 @@ type AttestOptions struct {
 	TSAServerURL            string
 	RekorEntryType          string
 	RecordCreationTimestamp bool
-	NewBundleFormat         bool
 	UseSigningConfig        bool
 	SigningConfigPath       string
 	TrustedRootPath         string
@@ -79,8 +78,6 @@ func (o *AttestOptions) AddFlags(cmd *cobra.Command) {
 
 	cmd.Flags().BoolVar(&o.NoUpload, "no-upload", false,
 		"do not upload the generated attestation, but send the attestation output to STDOUT")
-	cmd.Flags().BoolVarP(&o.Replace, "replace", "", false,
-		"")
 
 	cmd.Flags().BoolVarP(&o.SkipConfirmation, "yes", "y", false,
 		"skip confirmation prompts for non-destructive operations")
@@ -113,8 +110,6 @@ func (o *AttestOptions) AddFlags(cmd *cobra.Command) {
 
 	cmd.Flags().BoolVar(&o.IssueCertificate, "issue-certificate", false,
 		"issue a code signing certificate from Fulcio, even if a key is provided")
-
-	cmd.Flags().BoolVar(&o.NewBundleFormat, "new-bundle-format", true, "attach a Sigstore bundle using OCI referrers API")
 
 	// TODO: have this default to true as a breaking change
 	cmd.Flags().BoolVar(&o.UseSigningConfig, "use-signing-config", false,

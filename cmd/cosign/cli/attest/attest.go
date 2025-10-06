@@ -38,8 +38,6 @@ import (
 	"github.com/sigstore/cosign/v3/pkg/cosign"
 	"github.com/sigstore/cosign/v3/pkg/cosign/attestation"
 	cbundle "github.com/sigstore/cosign/v3/pkg/cosign/bundle"
-	cremote "github.com/sigstore/cosign/v3/pkg/cosign/remote"
-	"github.com/sigstore/cosign/v3/pkg/oci/mutate"
 	ociremote "github.com/sigstore/cosign/v3/pkg/oci/remote"
 	"github.com/sigstore/cosign/v3/pkg/oci/static"
 	"github.com/sigstore/cosign/v3/pkg/types"
@@ -79,7 +77,6 @@ type AttestCommand struct {
 	NoUpload                bool
 	PredicatePath           string
 	PredicateType           string
-	Replace                 bool
 	Timeout                 time.Duration
 	TlogUpload              bool
 	TSAServerURL            string
@@ -102,10 +99,6 @@ func (c *AttestCommand) Exec(ctx context.Context, imageRef string) error {
 		return fmt.Errorf("unknown value for rekor-entry-type")
 	}
 
-	predicateURI, err := options.ParsePredicateType(c.PredicateType)
-	if err != nil {
-		return err
-	}
 	ref, err := name.ParseReference(imageRef, c.NameOptions()...)
 	if err != nil {
 		return fmt.Errorf("parsing reference: %w", err)
@@ -230,7 +223,6 @@ func (c *AttestCommand) Exec(ctx context.Context, imageRef string) error {
 	}
 	defer sv.Close()
 	wrapped := dsse.WrapSigner(sv, types.IntotoPayloadType)
-	dd := cremote.NewDupeDetector(sv)
 
 	signedPayload, err := wrapped.SignMessage(bytes.NewReader(payload), signatureoptions.WithContext(ctx))
 	if err != nil {
@@ -249,19 +241,9 @@ func (c *AttestCommand) Exec(ctx context.Context, imageRef string) error {
 	var timestampBytes []byte
 	var tsaPayload []byte
 	if c.KeyOpts.TSAServerURL != "" {
-		// We need to decide what signature to send to the timestamp authority.
-		//
-		// Historically, cosign sent `signedPayload`, which is the entire JSON DSSE
-		// Envelope. However, when sigstore clients are verifying a bundle they
-		// will use the DSSE Sig field, so we choose what signature to send to
-		// the timestamp authority based on our output format.
-		if c.KeyOpts.NewBundleFormat {
-			tsaPayload, err = cosign.GetDSSESigBytes(signedPayload)
-			if err != nil {
-				return err
-			}
-		} else {
-			tsaPayload = signedPayload
+		tsaPayload, err = cosign.GetDSSESigBytes(signedPayload)
+		if err != nil {
+			return err
 		}
 		tc := tsaclient.NewTSAClient(c.KeyOpts.TSAServerURL)
 		if c.KeyOpts.TSAClientCert != "" {
@@ -313,47 +295,17 @@ func (c *AttestCommand) Exec(ctx context.Context, imageRef string) error {
 		opts = append(opts, static.WithBundle(cbundle.EntryToBundle(rekorEntry)))
 	}
 
-	sig, err := static.NewAttestation(signedPayload, opts...)
+	signerBytes, err := sv.Bytes(ctx)
 	if err != nil {
 		return err
 	}
-
-	if c.KeyOpts.NewBundleFormat {
-		signerBytes, err := sv.Bytes(ctx)
-		if err != nil {
-			return err
-		}
-		pubKey, err := sv.PublicKey()
-		if err != nil {
-			return err
-		}
-		bundleBytes, err := cbundle.MakeNewBundle(pubKey, rekorEntry, payload, signedPayload, signerBytes, timestampBytes)
-		if err != nil {
-			return err
-		}
-		return ociremote.WriteAttestationNewBundleFormat(digest, bundleBytes, predicateType, ociremoteOpts...)
-	}
-
-	// We don't actually need to access the remote entity to attach things to it
-	// so we use a placeholder here.
-	se := ociremote.SignedUnknown(digest, ociremoteOpts...)
-
-	signOpts := []mutate.SignOption{
-		mutate.WithDupeDetector(dd),
-		mutate.WithRecordCreationTimestamp(c.RecordCreationTimestamp),
-	}
-
-	if c.Replace {
-		ro := cremote.NewReplaceOp(predicateURI)
-		signOpts = append(signOpts, mutate.WithReplaceOp(ro))
-	}
-
-	// Attach the attestation to the entity.
-	newSE, err := mutate.AttachAttestationToEntity(se, sig, signOpts...)
+	pubKey, err := sv.PublicKey()
 	if err != nil {
 		return err
 	}
-
-	// Publish the attestations associated with this entity
-	return ociremote.WriteAttestations(digest.Repository, newSE, ociremoteOpts...)
+	bundleBytes, err := cbundle.MakeNewBundle(pubKey, rekorEntry, payload, signedPayload, signerBytes, timestampBytes)
+	if err != nil {
+		return err
+	}
+	return ociremote.WriteAttestationNewBundleFormat(digest, bundleBytes, predicateType, ociremoteOpts...)
 }

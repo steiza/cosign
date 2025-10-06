@@ -61,7 +61,6 @@ cosign attest [flags]
       --issue-certificate                                                                        issue a code signing certificate from Fulcio, even if a key is provided
       --k8s-keychain                                                                             whether to use the kubernetes keychain instead of the default keychain (supports workload identity).
       --key string                                                                               path to the private key file, KMS URI or Kubernetes Secret
-      --new-bundle-format                                                                        attach a Sigstore bundle using OCI referrers API (default true)
       --no-upload                                                                                do not upload the generated attestation, but send the attestation output to STDOUT
       --oidc-client-id string                                                                    OIDC client ID for application (default "sigstore")
       --oidc-client-secret-file string                                                           Path to file containing OIDC client secret for application
@@ -80,7 +79,6 @@ cosign attest [flags]
       --registry-username string                                                                 registry basic auth username
       --rekor-entry-type string                                                                  specifies the type to be used for a rekor entry upload (dsse|intoto) (default "dsse")
       --rekor-url string                                                                         address of rekor STL server (default "https://rekor.sigstore.dev")
-      --replace                                                                                  
       --signing-config string                                                                    path to a signing config file. Must provide --new-bundle-format, which will store verification material in the new format
       --sk                                                                                       whether to use a hardware security key
       --slot string                                                                              security key slot to use for generated key (default: signature) (authentication|signature|card-authentication|key-management)

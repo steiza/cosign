@@ -100,7 +100,6 @@ func Attest() *cobra.Command {
 				TSAServerName:                  o.TSAServerName,
 				TSAServerURL:                   o.TSAServerURL,
 				IssueCertificateForExistingKey: o.IssueCertificate,
-				NewBundleFormat:                o.NewBundleFormat,
 			}
 			// If a signing config is used, then service URLs cannot be specified
 			if (o.UseSigningConfig || o.SigningConfigPath != "") &&
@@ -109,10 +108,6 @@ func Attest() *cobra.Command {
 					(o.OIDC.Issuer != "" && o.OIDC.Issuer != options.DefaultOIDCIssuerURL) ||
 					o.TSAServerURL != "") {
 				return fmt.Errorf("cannot specify service URLs and use signing config")
-			}
-			// Signing config requires a bundle as output for verification materials since sigstore-go is used
-			if (o.UseSigningConfig || o.SigningConfigPath != "") && !o.NewBundleFormat {
-				return fmt.Errorf("must provide --new-bundle-format with --signing-config or --use-signing-config")
 			}
 			// Fetch a trusted root when:
 			// * requesting a certificate and no CT log key is provided to verify an SCT
@@ -151,7 +146,6 @@ func Attest() *cobra.Command {
 				NoUpload:                o.NoUpload,
 				PredicatePath:           o.Predicate.Path,
 				PredicateType:           o.Predicate.Type,
-				Replace:                 o.Replace,
 				Timeout:                 ro.Timeout,
 				TlogUpload:              o.TlogUpload,
 				RekorEntryType:          o.RekorEntryType,
