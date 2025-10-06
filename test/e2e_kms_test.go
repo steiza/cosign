@@ -63,8 +63,6 @@ func TestSecretsKMS(t *testing.T) {
 
 	rekorURL := os.Getenv(rekorURLVar)
 
-	must(downloadAndSetEnv(t, rekorURL+"/api/v1/log/publicKey", env.VariableSigstoreRekorPublicKey.String(), td), t)
-
 	// Now sign and verify with the KMS key
 	ko := options.KeyOpts{
 		KeyRef:           privKey,
@@ -76,11 +74,16 @@ func TestSecretsKMS(t *testing.T) {
 		TlogUpload: true,
 	}
 	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
-	must(verify(pubKey, imgName, false, "", false), t)
 
-	// Store signatures in a different repo
-	t.Setenv("COSIGN_REPOSITORY", path.Join(repo, "subbedrepo"))
-	must(sign.SignCmd(ro, ko, so, []string{imgName}), t)
-	must(verify(pubKey, imgName, true, "", false), t)
-	os.Unsetenv("COSIGN_REPOSITORY")
+	trustedRootPath := prepareTrustedRoot(t, "")
+
+	cmd := cliverify.VerifyCommand{
+		CommonVerifyOptions: options.CommonVerifyOptions{
+			TrustedRootPath: trustedRootPath,
+		},
+		KeyRef:          pubKey,
+		NewBundleFormat: true,
+	}
+	args := []string{imgName}
+	must(cmd.Exec(ctx, args), t)
 }
