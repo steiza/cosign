@@ -76,7 +76,10 @@ func SaveCmd(ctx context.Context, opts options.SaveOptions, imageRef string) err
 			if err != nil {
 				return fmt.Errorf("getting signed image: %w", err)
 			}
-			return layout.WriteSignedImage(opts.Directory, si)
+			err = layout.WriteSignedImage(opts.Directory, si)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
