@@ -40,7 +40,6 @@ import (
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 
 	"github.com/sigstore/cosign/v3/pkg/cosign"
-	cbundle "github.com/sigstore/cosign/v3/pkg/cosign/bundle"
 	"github.com/sigstore/cosign/v3/pkg/oci/mutate"
 	ociremote "github.com/sigstore/cosign/v3/pkg/oci/remote"
 	"github.com/sigstore/cosign/v3/pkg/oci/static"
@@ -86,20 +85,6 @@ func (f *legacyFixture) sign(t *testing.T, data []byte) []byte {
 	return sig
 }
 
-func (f *legacyFixture) attachSignature(t *testing.T, opts ...static.Option) {
-	t.Helper()
-	payload := []byte(fmt.Sprintf(`{"critical":{"identity":{"docker-reference":%q},"image":{"docker-manifest-digest":%q},"type":"cosign container image signature"},"optional":null}`,
-		f.digest.Context().String(), f.digest.DigestStr()))
-	sig, err := static.NewSignature(payload, base64.StdEncoding.EncodeToString(f.sign(t, payload)), opts...)
-	checkErr(t, err)
-
-	se, err := ociremote.SignedEntity(f.digest)
-	checkErr(t, err)
-	se, err = mutate.AttachSignatureToEntity(se, sig)
-	checkErr(t, err)
-	checkErr(t, ociremote.WriteSignatures(f.digest.Repository, se))
-}
-
 func (f *legacyFixture) attachAttestation(t *testing.T, predicateType string) {
 	t.Helper()
 	statement := []byte(fmt.Sprintf(`{"_type":"https://in-toto.io/Statement/v1","subject":[{"name":%q,"digest":{"sha256":%q}}],"predicateType":%q,"predicate":{}}`,
@@ -122,29 +107,26 @@ func (f *legacyFixture) attachAttestation(t *testing.T, predicateType string) {
 	checkErr(t, ociremote.WriteAttestations(f.digest.Repository, se))
 }
 
-func (f *legacyFixture) cmd() *CreateContainerCmd {
-	return &CreateContainerCmd{IgnoreTlog: true, KeyRef: f.keyPath}
+func (f *legacyFixture) createFromContainerCmd() *CreateFromContainerCmd {
+	return &CreateFromContainerCmd{IgnoreTlog: true, KeyRef: f.keyPath}
 }
 
-func TestCreateContainerCmd(t *testing.T) {
+func TestCreateFromContainerCmd(t *testing.T) {
 	ctx := context.Background()
 	f := newLegacyFixture(t)
-	predicateType := "https://example.com/predicate/v1"
-	f.attachSignature(t)
+	predicateType := "https://sigstore.dev/cosign/sign/v1"
 	f.attachAttestation(t, predicateType)
 
-	checkErr(t, f.cmd().Exec(ctx, f.digest.String()))
+	checkErr(t, f.createFromContainerCmd().Exec(ctx, f.digest.String()))
 
 	bundles, _, err := cosign.GetBundles(ctx, f.digest, nil)
 	checkErr(t, err)
-	if len(bundles) != 2 {
-		t.Fatalf("expected 2 bundles, got %d", len(bundles))
+	if len(bundles) != 1 {
+		t.Fatalf("expected 1 bundle, got %d", len(bundles))
 	}
-	var sawMessage, sawDSSE bool
+	var sawDSSE bool
 	for _, b := range bundles {
 		switch b.Content.(type) {
-		case *protobundle.Bundle_MessageSignature:
-			sawMessage = true
 		case *protobundle.Bundle_DsseEnvelope:
 			sawDSSE = true
 		}
@@ -152,8 +134,8 @@ func TestCreateContainerCmd(t *testing.T) {
 			t.Error("expected public key verification material")
 		}
 	}
-	if !sawMessage || !sawDSSE {
-		t.Errorf("expected one message signature and one DSSE bundle, got message=%v dsse=%v", sawMessage, sawDSSE)
+	if !sawDSSE {
+		t.Errorf("expected one DSSE bundle, got dsse=%v", sawDSSE)
 	}
 
 	index, err := ociremote.Referrers(f.digest, "")
@@ -165,36 +147,18 @@ func TestCreateContainerCmd(t *testing.T) {
 	}
 
 	// Running again must not push duplicates.
-	checkErr(t, f.cmd().Exec(ctx, f.digest.String()))
+	checkErr(t, f.createFromContainerCmd().Exec(ctx, f.digest.String()))
 	bundles, _, err = cosign.GetBundles(ctx, f.digest, nil)
 	checkErr(t, err)
-	if len(bundles) != 2 {
-		t.Fatalf("expected 2 bundles after re-run, got %d", len(bundles))
+	if len(bundles) != 1 {
+		t.Fatalf("expected 1 bundle after re-run, got %d", len(bundles))
 	}
 }
 
-func TestCreateContainerCmd_FailOnIgnoreTlogWithSET(t *testing.T) {
-	f := newLegacyFixture(t)
-	f.attachSignature(t, static.WithBundle(&cbundle.RekorBundle{SignedEntryTimestamp: []byte("set")}))
-
-	if err := f.cmd().Exec(context.Background(), f.digest.String()); err == nil {
-		t.Fatal("expected error when ignoring tlog with a Signed Entry Timestamp")
-	}
-}
-
-func TestCreateContainerCmd_NoLegacyMaterial(t *testing.T) {
+func TestCreateFromContainerCmd_NoLegacyMaterial(t *testing.T) {
 	f := newLegacyFixture(t)
 
-	if err := f.cmd().Exec(context.Background(), f.digest.String()); err == nil {
-		t.Fatal("expected error when no legacy signatures exist")
-	}
-}
-
-func TestCreateContainerCmd_NoKeyOrCert(t *testing.T) {
-	f := newLegacyFixture(t)
-	f.attachSignature(t)
-
-	if err := (&CreateContainerCmd{IgnoreTlog: true}).Exec(context.Background(), f.digest.String()); err == nil {
-		t.Fatal("expected error when signature has no certificate and no key is supplied")
+	if err := f.createFromContainerCmd().Exec(context.Background(), f.digest.String()); err == nil {
+		t.Fatal("expected error when no legacy attestation exist")
 	}
 }

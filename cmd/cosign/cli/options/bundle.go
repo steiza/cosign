@@ -90,7 +90,7 @@ func (o *BundleCreateOptions) AddFlags(cmd *cobra.Command) {
 	cmd.MarkFlagsMutuallyExclusive("bundle", "signature")
 }
 
-type BundleCreateContainerOptions struct {
+type BundleCreateFromContainerOptions struct {
 	Registry   RegistryOptions
 	IgnoreTlog bool
 	KeyRef     string
@@ -99,9 +99,9 @@ type BundleCreateContainerOptions struct {
 	Slot       string
 }
 
-var _ Interface = (*BundleCreateContainerOptions)(nil)
+var _ Interface = (*BundleCreateFromContainerOptions)(nil)
 
-func (o *BundleCreateContainerOptions) AddFlags(cmd *cobra.Command) {
+func (o *BundleCreateFromContainerOptions) AddFlags(cmd *cobra.Command) {
 	o.Registry.AddFlags(cmd)
 
 	cmd.Flags().BoolVar(&o.IgnoreTlog, "ignore-tlog", false,
