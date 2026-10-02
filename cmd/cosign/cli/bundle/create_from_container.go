@@ -39,6 +39,7 @@ import (
 	"github.com/sigstore/cosign/v3/pkg/oci"
 	ociremote "github.com/sigstore/cosign/v3/pkg/oci/remote"
 	sigs "github.com/sigstore/cosign/v3/pkg/signature"
+	"github.com/sigstore/cosign/v3/pkg/types"
 )
 
 type CreateFromContainerCmd struct {
@@ -127,14 +128,40 @@ func (c *CreateFromContainerCmd) Exec(ctx context.Context, imageRef string) (err
 		return fmt.Errorf("fetching attestations: %w", err)
 	}
 
-	if len(sigLayers) != 0 {
-		ui.Warnf(ctx, "Legacy container signatures can not be upgraded")
-	}
-	if len(attLayers) == 0 {
-		return fmt.Errorf("no legacy attestations found for %s", digest.String())
+	if len(sigLayers) == 0 && len(attLayers) == 0 {
+		return fmt.Errorf("no legacy signatures or attestations found for %s", digest.String())
 	}
 
 	var converted, skipped int
+
+	for _, layer := range sigLayers {
+		payload, err := layer.Payload()
+		if err != nil {
+			return err
+		}
+		sigBytes, err := layer.Signature()
+		if err != nil {
+			return err
+		}
+		if _, ok := existing[string(sigBytes)]; ok {
+			skipped++
+			continue
+		}
+
+		b, err := c.assemble(ctx, layer, payload, sigBytes, nil, sigVerifier, rekorClient)
+		if err != nil {
+			return fmt.Errorf("assembling signature bundle: %w", err)
+		}
+		bundleBytes, err := b.MarshalJSON()
+		if err != nil {
+			return err
+		}
+		if err := ociremote.WriteAttestationNewBundleFormat(digest, bundleBytes, types.CosignSignPredicateType, ociremoteOpts...); err != nil {
+			return fmt.Errorf("writing signature bundle: %w", err)
+		}
+		existing[string(sigBytes)] = struct{}{}
+		converted++
+	}
 
 	for _, layer := range attLayers {
 		payload, err := layer.Payload()
@@ -177,7 +204,7 @@ func (c *CreateFromContainerCmd) Exec(ctx context.Context, imageRef string) (err
 		converted++
 	}
 
-	ui.Infof(ctx, "Converted %d legacy attestation(s) for %s; skipped %d already present", converted, digest.String(), skipped)
+	ui.Infof(ctx, "Converted %d legacy signature(s)/attestation(s) for %s; skipped %d already present", converted, digest.String(), skipped)
 	return nil
 }
 

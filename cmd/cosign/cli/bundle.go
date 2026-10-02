@@ -84,7 +84,7 @@ func bundleCreateFromContainer() *cobra.Command {
 		Use:   "create-from-container IMAGE",
 		Short: "Create Sigstore protobuf bundles from legacy container attestations",
 		Long: `Create Sigstore protobuf bundles from attestations stored in the
-legacy tag-based format (.att) for a container image, and attach them to
+legacy tag-based format (.att / .sig) for a container image, and attach them to
 the image as OCI 1.1 referrers. Bundles that are already attached are skipped.`,
 		Example: `  # convert keyless attestations
 	cosign bundle create-from-container <IMAGE>
